@@ -1,0 +1,17 @@
+{
+	"proxies": [
+		{
+			"port": ":8080",
+			"routes": [
+				{
+					"from": "eff.localhost/",
+					"to": "https://www.eff.org"
+				},
+				{
+					"from": "wiki.localhost/",
+					"to": "https://www.wikipedia.org"
+				}
+			]
+		}
+	]
+}

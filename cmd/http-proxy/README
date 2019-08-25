@@ -1,0 +1,7 @@
+The http-proxy command parses a JSON file describing a list of reverse proxies.
+This tool should only be used for testing: production code should manually
+define proxy.Proxies with TLSConfig.
+
+The example.json provides an example where http://eff.localhost:8080 is a
+reverse proxy to the external resource https://www.eff.org and
+http://wiki.localhost:8080 is a reverse proxy to https://www.wikipedia.org.
