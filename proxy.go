@@ -94,7 +94,7 @@ func listenAndServe(r ReverseProxy, errs chan error) {
 
 		raw := to.RawQuery
 
-		// Custom director to preserve change Host header
+		// Custom director to change Host header
 		director := func(req *http.Request) {
 			req.Host = to.Host
 			req.Header.Set("Host", to.Host)
