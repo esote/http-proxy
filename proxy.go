@@ -2,12 +2,14 @@
 package proxy
 
 import (
+	"context"
 	"crypto/tls"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 )
 
 // Route describes the reverse proxy route: redirecting from From to To.
@@ -35,6 +37,15 @@ type ReverseProxy struct {
 	// TLSConfig is ignored when parsing JSON. Manually define a
 	// ReverseProxy variable to use it.
 	TLSConfig *tls.Config `json:"-"`
+
+	// Stop is ignored with parsing JSON. Sending "true" along the channel
+	// will gracefully shutdown the proxy server.
+	Stop <-chan bool `json:"-"`
+
+	// StopTimeout is ignored when parsing JSON. If the stop channel is
+	// used, StopTimeout determines how long to wait for graceful shutdown
+	// before forceful shutdown. -1 indicates to wait forever.
+	StopTimeout time.Duration `json:"-"`
 }
 
 // Proxies describes a list of reverse proxies.
@@ -126,6 +137,31 @@ func listenAndServe(r ReverseProxy, errs chan error) {
 
 	var err error
 
+	go func(stop <-chan bool, timeout time.Duration) {
+		if stop == nil {
+			return
+		}
+		for {
+			select {
+			case s, ok := <-stop:
+				if !ok {
+					return
+				}
+				if !s {
+					continue
+				}
+				ctx := context.Background()
+				if timeout != time.Duration(-1) {
+					var cancel context.CancelFunc
+					ctx, cancel = context.WithTimeout(ctx, timeout)
+					defer cancel()
+				}
+				_ = srv.Shutdown(ctx)
+				return
+			}
+		}
+	}(r.Stop, r.StopTimeout)
+
 	if r.Key == "" {
 		err = srv.ListenAndServe()
 	} else {
@@ -133,7 +169,7 @@ func listenAndServe(r ReverseProxy, errs chan error) {
 		err = srv.ListenAndServeTLS(r.Cert, r.Key)
 	}
 
-	if err != nil {
+	if err != nil && err != http.ErrServerClosed {
 		errs <- err
 	}
 
