@@ -34,12 +34,14 @@ type ReverseProxy struct {
 
 	Routes []Route `json:"routes"`
 
-	// TLSConfig is ignored when parsing JSON. Manually define a
-	// ReverseProxy variable to use it.
+	// TLSConfig is ignored when parsing JSON. Used when Key != "".
 	TLSConfig *tls.Config `json:"-"`
 
 	// Stop is ignored with parsing JSON. Sending "true" along the channel
 	// will gracefully shutdown the proxy server.
+	//
+	// The channels should be distinct for each proxy: use fan-out
+	// caller-side to stop multiple proxies.
 	Stop <-chan bool `json:"-"`
 
 	// StopTimeout is ignored when parsing JSON. If the stop channel is
